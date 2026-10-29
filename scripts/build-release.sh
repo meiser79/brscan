@@ -29,12 +29,11 @@ cd /work
 STAGE="brscan-${VERSION}-${ARCH}"
 DEST="dist/${STAGE}"
 rm -rf "${DEST}"
-mkdir -p "${DEST}/lib/sane" "${DEST}/lib" "${DEST}/bin"
+mkdir -p "${DEST}"
 
-install -m 644 build/libsane-brother.so.1 "${DEST}/lib/sane/"
-install -m 644 build/libbrscandec.so.1     "${DEST}/lib/"
-install -m 644 build/libbrcolm.so.1        "${DEST}/lib/"
-install -m 755 build/brsaneconfig          "${DEST}/bin/"
+# Same tree as "make install": binaries, libraries, the suffix-2 symlinks
+# and the /usr/share/sane/brother data (Brsane2.ini, GrayCmData, ...).
+DESTDIR="$PWD/${DEST}" cmake --install build
 
 for f in README.md Copying copying.brother copying.lib; do
     [ -f "$f" ] && cp "$f" "${DEST}/"
@@ -42,16 +41,9 @@ done
 
 # Plain text install instructions — no heredoc indent traps.
 {
-    echo 'Install (run as root):'
+    echo 'Install (run as root, from this directory):'
     echo
-    echo '    install -m 644 lib/libbrscandec.so.1     /usr/lib/libbrscandec.so.1'
-    echo '    install -m 644 lib/libbrcolm.so.1        /usr/lib/libbrcolm.so.1'
-    echo '    install -m 644 lib/sane/libsane-brother.so.1 /usr/lib/sane/libsane-brother.so.1'
-    echo '    ln -sf libbrscandec.so.1 /usr/lib/libbrscandec.so'
-    echo '    ln -sf libbrscandec.so.1 /usr/lib/libbrscandec2.so'
-    echo '    ln -sf libbrcolm.so.1    /usr/lib/libbrcolm.so'
-    echo '    ln -sf libbrcolm.so.1    /usr/lib/libbrcolm2.so'
-    echo '    ln -sf libsane-brother.so.1 /usr/lib/sane/libsane-brother.so'
+    echo '    cp -a usr/. /usr/'
     echo '    ldconfig'
     echo '    echo brother >> /etc/sane.d/dll.conf'
     echo

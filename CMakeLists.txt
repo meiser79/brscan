@@ -66,14 +66,36 @@ target_include_directories(brsaneconfig PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/libsane-brother)
 target_compile_definitions(brsaneconfig PRIVATE BRSANESUFFIX=2)
 target_link_libraries(brsaneconfig sane-brother)
+# BRSANESUFFIX=2 tool name, like Brother's brsaneconfig2/3/4
+set_target_properties(brsaneconfig PROPERTIES OUTPUT_NAME brsaneconfig2)
+
+# BRSANESUFFIX=2 code uses suffixed names (libbrscandec2.so, Brsane2.ini,
+# brsanenetdevice2.cfg, brsaneconfig2). The suffixed name is always the
+# real file and the plain name a symlink to it. The libraries are the
+# exception only in that CMake already owns libbrscandec.so -> .so.1,
+# so the "2" name links straight to the .so.1 file.
+# The symlinks are created in the build tree and installed like regular
+# files, so they appear in the install log, honour DESTDIR, and a failure
+# stops the configure step.
+set(BRSCAN_LINK_DIR ${CMAKE_CURRENT_BINARY_DIR}/symlinks)
+file(MAKE_DIRECTORY ${BRSCAN_LINK_DIR})
+function(brscan_symlink target name)
+  file(REMOVE ${BRSCAN_LINK_DIR}/${name})
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${target} ${BRSCAN_LINK_DIR}/${name}
+                  RESULT_VARIABLE rc)
+  if(rc)
+    message(FATAL_ERROR "cannot create symlink ${name} -> ${target}")
+  endif()
+endfunction()
+brscan_symlink(libbrscandec.so.1 libbrscandec2.so)
+brscan_symlink(libbrcolm.so.1 libbrcolm2.so)
+brscan_symlink(Brsane2.ini Brsane.ini)
+brscan_symlink(brsanenetdevice2.cfg brsanenetdevice.cfg)
+brscan_symlink(brsaneconfig2 brsaneconfig)
 
 install(TARGETS brsaneconfig brscandec brcolm)
-# BRSANESUFFIX=2 code loads libbrscandec2.so and libbrcolm2.so by name.
-# Must run after install(TARGETS) so lib/ exists under DESTDIR.
-install(CODE "
-  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libbrscandec.so \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/libbrscandec2.so)
-  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libbrcolm.so \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/libbrcolm2.so)
-")
+install(PROGRAMS ${BRSCAN_LINK_DIR}/brsaneconfig DESTINATION bin)
+install(FILES ${BRSCAN_LINK_DIR}/libbrscandec2.so ${BRSCAN_LINK_DIR}/libbrcolm2.so DESTINATION lib)
 install(TARGETS sane-brother LIBRARY DESTINATION /usr/lib/sane)
 
 install(FILES libbrcolm/GrayCmData/BHminiFB/brmfgray.bin DESTINATION /usr/share/sane/brother/GrayCmData/BHminiFB)
@@ -89,11 +111,10 @@ install(FILES libbrcolm/GrayCmData/BHL/brmfgray.bin DESTINATION /usr/share/sane/
 install(FILES libbrcolm/GrayCmData/BHMFB/brmfgray.bin DESTINATION /usr/share/sane/brother/GrayCmData/BHMFB)
 install(FILES libbrcolm/GrayCmData/ZLeFB/brlutcm.dat libbrcolm/GrayCmData/ZLeFB/brmfgray.bin DESTINATION /usr/share/sane/brother/GrayCmData/ZLeFB)
 
-install(FILES data/brsanenetdevice.cfg data/Brsane.ini DESTINATION /usr/share/sane/brother)
-# BRSANESUFFIX=2 looks for Brsane2.ini
-install(CODE "
-  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink Brsane.ini \$ENV{DESTDIR}/usr/share/sane/brother/Brsane2.ini)
-")
+install(FILES data/Brsane.ini DESTINATION /usr/share/sane/brother RENAME Brsane2.ini)
+install(FILES data/brsanenetdevice.cfg DESTINATION /usr/share/sane/brother RENAME brsanenetdevice2.cfg)
+install(FILES ${BRSCAN_LINK_DIR}/Brsane.ini ${BRSCAN_LINK_DIR}/brsanenetdevice.cfg
+        DESTINATION /usr/share/sane/brother)
 
 option(BRSCAN_BUILD_TESTS "Build brscan unit tests" OFF)
 if(BRSCAN_BUILD_TESTS)
