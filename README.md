@@ -26,9 +26,19 @@ Tested on **Brother DCP-1510**. Should work on other Brother MFC/DCP models list
 
 ## Prerequisites
 
+Debian / Ubuntu / Raspberry Pi OS:
+
 ```
-sudo apt install libsane-dev libusb-dev libjpeg-dev pkg-config cmake gcc
+sudo apt install build-essential cmake pkg-config libsane-dev libusb-dev libusb-1.0-0-dev libjpeg-dev
 ```
+
+Alpine:
+
+```
+sudo apk add build-base cmake pkgconf sane-dev libusb-dev libusb-compat-dev libjpeg-turbo-dev
+```
+
+The backend uses the libusb-0.1 API (`<usb.h>`, `-lusb`), so both the libusb-1.0 and the libusb-0.1 / libusb-compat development packages are needed.
 
 ## Building & Installing
 
@@ -38,10 +48,45 @@ cd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr ..
 make -j4
 sudo make install
-sudo sh -c "echo brother >> /etc/sane.d/dll.conf"
+sudo ldconfig                      # glibc systems only
+grep -qx brother /etc/sane.d/dll.conf || echo brother | sudo tee -a /etc/sane.d/dll.conf
 ```
 
-Pre-built binaries for amd64, arm64, and armv7 are published as GitHub releases — see [Releases](https://github.com/dmikushin/brscan/releases).
+For packaging, install into a staging directory with `make install DESTDIR=/path/to/stage`.
+
+The driver uses the `BRSANESUFFIX=2` file names. Those are installed as the real files, and the plain names are symlinks to them:
+
+| Real file | Symlink |
+|---|---|
+| `/usr/bin/brsaneconfig2` | `/usr/bin/brsaneconfig` |
+| `/usr/lib/libbrscandec.so.1` | `/usr/lib/libbrscandec2.so` |
+| `/usr/lib/libbrcolm.so.1` | `/usr/lib/libbrcolm2.so` |
+| `/usr/share/sane/brother/Brsane2.ini` | `/usr/share/sane/brother/Brsane.ini` |
+| `/usr/share/sane/brother/brsanenetdevice2.cfg` | `/usr/share/sane/brother/brsanenetdevice.cfg` |
+
+The SANE backend itself goes to `/usr/lib/sane/libsane-brother.so.1`, and the gray tables to `/usr/share/sane/brother/GrayCmData/`.
+
+The install assumes a fresh system. When upgrading from an older brscan build, remove the old files first:
+
+```
+sudo rm -rf /usr/share/sane/brother /usr/lib/libbrscandec* /usr/lib/libbrcolm* /usr/bin/brsaneconfig*
+```
+
+If `scanimage -L` does not list the scanner, check where SANE looks for backends with `SANE_DEBUG_DLL=3 scanimage -L`. Some Debian-based systems use `/usr/lib/<arch>/sane`; symlink `libsane-brother.so.1` there.
+
+Network scanners are configured with `brsaneconfig2`, e.g. `sudo brsaneconfig2 -a name=office model=<MODEL> ip=192.168.1.20`; `brsaneconfig2 -q` lists the supported model names and the configured scanners.
+
+### Release tarballs
+
+`scripts/build-release.sh` builds a tarball containing the same `usr/` tree as `make install`, including the data files. Install it with:
+
+```
+sudo cp -a usr/. /usr/
+sudo ldconfig
+grep -qx brother /etc/sane.d/dll.conf || echo brother | sudo tee -a /etc/sane.d/dll.conf
+```
+
+The upstream [releases](https://github.com/dmikushin/brscan/releases) up to v1.0.1 predate this layout; follow the `INSTALL` file inside those tarballs instead.
 
 ## USB Permissions
 
