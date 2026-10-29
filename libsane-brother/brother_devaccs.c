@@ -578,6 +578,15 @@ ReadDeviceData( usb_dev_handle *hScanner, LPSTR lpRxBuffer, int nReadSize, int s
 	int  nTimeOut = 20000;
 	int  nEndPoint,i;
 
+	/* DCP-151x firmware stalls after ~64 KB when asked for bulk-IN reads
+	 * larger than 16 KiB; the official brscan4 driver reads in 16384-byte
+	 * chunks.  See https://github.com/dmikushin/brscan/issues/8
+	 */
+	#define BROTHER_USB_READ_CHUNK 16384
+
+	if (nReadSize > BROTHER_USB_READ_CHUNK)
+		nReadSize = BROTHER_USB_READ_CHUNK;
+
 	WriteLog( "ReadDeviceData Start nReadSize =%d\n", nReadSize ) ;
 
 	if (IFTYPE_NET != hScanner->device){
