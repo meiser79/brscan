@@ -602,6 +602,28 @@ StatusChk(char *lpBuff, int nDataSize)
  * for minutes. */
 #define READ_TIMEOUT 20*1000
 
+/* DCP-1510 stops a few lines short of the requested height (e.g. 3429 of
+ * 3437 at 300 dpi) and never sends the Page-End status, so every page
+ * ended with a full READ_TIMEOUT of silence before the EOF fallback
+ * padded the rest. Once at most END_OF_PAGE_SLACK_PCT of the lines are
+ * missing, give up after END_OF_PAGE_TIMEOUT instead. The long timeout
+ * still covers the warm-up at the start of a page. */
+#define END_OF_PAGE_TIMEOUT	(2*1000)
+#define END_OF_PAGE_SLACK_PCT	1
+
+static DWORD
+PageReadTimeout( Brother_Scanner *this )
+{
+	LONG lHeight = this->scanInfo.ScanAreaSize.lHeight;
+	LONG lSlack  = lHeight * END_OF_PAGE_SLACK_PCT / 100;
+
+	if (lSlack < 1)
+		lSlack = 1;
+	if (lHeight > 0 && lRealY >= lHeight - lSlack)
+		return END_OF_PAGE_TIMEOUT;
+	return READ_TIMEOUT;
+}
+
 #define NO39_DEBUG
 
 
@@ -805,7 +827,7 @@ static int brscan4_device_read(void *ctx, unsigned char *dst, int size)
 	return ReadNonFixedData(this->hScanner,
 	                        (LPSTR)dst,
 	                        size,
-	                        READ_TIMEOUT,
+	                        PageReadTimeout(this),
 	                        this->modelInf.seriesNo);
 }
 
@@ -1011,10 +1033,10 @@ PageScan( Brother_Scanner *this, char *lpFwBuf, int nMaxLen, int *lpFwLen )
 				rc = brscan4_read_next_record_from_device( this, lpReadBuf, nReadSize );
 			else
 #endif
-				rc = ReadNonFixedData( this->hScanner, lpReadBuf, nReadSize, READ_TIMEOUT, this->modelInf.seriesNo );
+				rc = ReadNonFixedData( this->hScanner, lpReadBuf, nReadSize, PageReadTimeout(this), this->modelInf.seriesNo );
 			if (rc <= 0) {
 				/* rc < 0 = USB error, rc == 0 = timed out with no data
-				 * for READ_TIMEOUT (20 s). Both mean "scanner has gone
+				 * for PageReadTimeout(). Both mean "scanner has gone
 				 * silent" — flip bReadbufEnd so the fallback EOF path
 				 * below can force SCAN_EOF based on whatever lines we
 				 * already got. Previous behaviour only handled rc < 0
