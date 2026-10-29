@@ -763,6 +763,11 @@ ReadNonFixedData( usb_dev_handle *hScanner, LPSTR lpBuffer, WORD wReadSize, DWOR
 		if( nReadDataSize > 0 ){
 			break;
 		}
+		else if (nReadDataSize == -ETIMEDOUT) {
+			// one bulk read timing out (e.g. during lamp warm-up) is not
+			// the end of the data; keep waiting until dwTimeOutMsec
+			nReadDataSize = 0;
+		}
 		else if (nReadDataSize < 0) {
 			break;
 		}

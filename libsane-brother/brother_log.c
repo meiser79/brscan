@@ -88,6 +88,7 @@ WriteLogFileString(LPSTR lpszLogStr)
 	    hLogFile = fopen(szLogFile,"a");
 	} else {
 	    hLogFile = fopen(szLogFile,"w");
+	    nNewLog = 0;	// truncate once per session, then append
 	}
     }
 

@@ -32,7 +32,6 @@ Start: 2.4.2001
 
 ====================================================================== */
 
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -759,7 +758,7 @@ sane_get_option_descriptor (SANE_Handle handle, SANE_Int iOpt)
   Brother_Scanner *this=(Brother_Scanner*)handle;
   WriteLog( "<<< sane_get_option_descriptor start >>> " );
 
-  if (iOpt<NUM_OPTIONS)
+  if (iOpt>=0 && iOpt<NUM_OPTIONS)
     return this->aoptDesc+iOpt;
 
   WriteLog( "<<< sane_get_option_descriptor end >>> " );
@@ -783,7 +782,7 @@ sane_control_option (SANE_Handle handle, SANE_Int iOpt,
   if (pnInfo)
     *pnInfo=0;
 
-  if (iOpt>=NUM_OPTIONS)
+  if (iOpt<0 || iOpt>=NUM_OPTIONS)
     return SANE_STATUS_INVAL;
 
   cap=this->aoptDesc[iOpt].cap;

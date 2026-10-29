@@ -672,8 +672,9 @@ PageScanColor( Brother_Scanner *this, char *lpFwBuf, int nMaxLen, int *lpFwLen )
 		int nread = ReadNonFixedData(this->hScanner,
 			g_colorResidue + g_colorResidueLen, space,
 			READ_TIMEOUT, this->modelInf.seriesNo);
-		if (nread < 0) {
-			WriteLog("  color: USB read error rc=%d — force decode", nread);
+		if (nread <= 0) {
+			/* rc == 0: no data for READ_TIMEOUT */
+			WriteLog("  color: USB read error/timeout rc=%d — force decode", nread);
 			brother_color_begin_decode();
 			phase = brother_color_phase();
 			break;
@@ -1504,7 +1505,7 @@ PageScan( Brother_Scanner *this, char *lpFwBuf, int nMaxLen, int *lpFwLen )
 			WriteLog( "PageScan ReadNonFixedData Cnt = %d", nReadCnt );
 
 			rc = ReadNonFixedData( this->hScanner, lpReadBuf, nReadSize, READ_TIMEOUT , this->modelInf.seriesNo );
-			if (rc < 0) {
+			if (rc <= 0) {
 				this->scanState.bReadbufEnd = TRUE;
 				WriteLog( "  bReadbufEnd =TRUE" );
 				break;
