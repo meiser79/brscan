@@ -48,7 +48,7 @@ int g_sane_debug_dll = 0;
 //
 // �����ե����롦�⥸�塼����������ѿ�
 //
-static int  nLogFile = 1;
+static int  nLogFile = 0;
 static int  nNewLog  = 1;
 
 static HANDLE  hLogFile = 0;

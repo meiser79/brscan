@@ -59,6 +59,16 @@
 #define BACKEND_NAME sanei_debug
 #include "../include/sane/sanei_debug.h"
 
+
+int
+isfdtype (int fd, int fdtype)
+{
+	struct stat st;
+	if (fstat (fd, &st) != 0)
+		return -1;
+	return ((st.st_mode & S_IFMT) == (mode_t) fdtype);
+}
+
 void
 sanei_init_debug (const char * backend, int * var)
 {
