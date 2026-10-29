@@ -756,6 +756,13 @@ ReadNonFixedData( usb_dev_handle *hScanner, LPSTR lpBuffer, WORD wReadSize, DWOR
 			break;
 		}
 
+		// sane_cancel() was called: stop polling a silent scanner
+		if (hScanner->cancel_requested) {
+			WriteLog( "ReadNonFixedData: cancel requested" );
+			nReadDataSize = 0;
+			break;
+		}
+
 		//
 		// read data
 		//

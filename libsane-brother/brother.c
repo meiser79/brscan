@@ -1002,6 +1002,7 @@ sane_start (SANE_Handle handle)
     FinishCanceledScan( this );
     this->scanState.bCanceled = FALSE;
   }
+  this->hScanner->cancel_requested = FALSE;
 
   rc=SetupInternalParameters(this);
   if (rc) // �����ͤ��ְ�äƤ����票�顼���֤���
@@ -1043,9 +1044,10 @@ sane_read (SANE_Handle handle, SANE_Byte *buf,
   }
 
   /* Once sane_cancel() has been called, an error from the read that was
-   * in flight (e.g. usb_bulk_read interrupted by the frontend's SIGINT)
-   * is a consequence of the cancel; report it as such. */
-  if (this->scanState.bCanceled && rc != SANE_STATUS_EOF) {
+   * in flight (e.g. usb_bulk_read interrupted by the frontend's SIGINT,
+   * or the EOF fallback after ReadNonFixedData gave up polling) is a
+   * consequence of the cancel; report it as such. */
+  if (this->scanState.bCanceled) {
     rc = SANE_STATUS_CANCELLED;
     *len = 0;
   }
@@ -1076,6 +1078,8 @@ sane_cancel (SANE_Handle handle)
    */
   this->scanState.bCanceled = TRUE;
   this->scanState.bEOF = TRUE;
+  if (this->hScanner)
+    this->hScanner->cancel_requested = TRUE;
 
   WriteLog( "sane_cancel end");
 

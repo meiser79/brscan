@@ -169,6 +169,7 @@ typedef struct tagDEVHANDLE {
   int              net_device_index;
   int              usb_w_ep;
   int              usb_r_ep;
+  volatile int     cancel_requested;	// set by sane_cancel(), polled by ReadNonFixedData()
 } dev_handle;
 
 
