@@ -260,7 +260,7 @@ ScanStart( Brother_Scanner *this )
 		    = get_p_model_info_by_index(this->modelInf.index)->r_endpoint;
 
 		  if (IFTYPE_USB == this->hScanner->device){
-		    this->hScanner->usb=usb_open(g_pdev->pdev);
+		    this->hScanner->usb=usb_open(this->pdev->pdev);
 		    if (!this->hScanner->usb)
 		      return SANE_STATUS_IO_ERROR;
 
@@ -1989,7 +1989,8 @@ ScanEnd( Brother_Scanner *this )
     //
     // end of the decode/stretch process
     //
-    this->scanDec.lpfnScanDecClose();
+    if (this->scanDec.lpfnScanDecClose)
+	this->scanDec.lpfnScanDecClose();
 
     WriteLog( "<<<<< Terminate Scanning <<<<<" );
 }

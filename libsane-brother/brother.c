@@ -32,6 +32,7 @@ Start: 2.4.2001
 
 ====================================================================== */
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,8 +71,6 @@ Start: 2.4.2001
 
 extern int g_sane_debug_dll;
 
-TDevice *g_pdev;
-
 static int      num_devices;	// USB��˸��Ф��줿Brother�ǥХ�����
 static TDevice  *pdevFirst;	// USB��˸��Ф��줿Brother�ǥХ����ꥹ��
 static Brother_Scanner   *pinstFirst;	// �����ץ󤷤��ǥХ����γƼ����
@@ -92,12 +91,6 @@ static const SANE_Range rangeLumi = {
 #define NUM_SCANMODE (5+1)
 #define NUM_RESO (12+1)
 #define NUM_SCANSRC (3+1)   //06/03/02 FB,ADF,ADF_DUPLEX
-
-static SANE_String_Const * scanModeList = 0;
-
-static SANE_Int *scanResoList = 0;
-
-static SANE_String_Const * scanSrcList = 0;
 
 static SANE_Range rangeXmm;
 static SANE_Range rangeYmm;
@@ -164,27 +157,27 @@ InitOptions (Brother_Scanner *this)
   memset(this->aoptVal,0,sizeof(this->aoptVal));
 
   // �������⡼�ɤ�������ܥꥹ�Ȥ�������롣
-  nSize = NUM_SCANMODE * sizeof (scanModeList[0]);
-  scanModeList = MALLOC (nSize);
-  if (!scanModeList)
+  nSize = NUM_SCANMODE * sizeof (this->scanModeList[0]);
+  this->scanModeList = MALLOC (nSize);
+  if (!this->scanModeList)
     return SANE_STATUS_NO_MEM;
-  rc = get_scanmode_string(this->uiSetting.ScanModeList, scanModeList);
+  rc = get_scanmode_string(this->uiSetting.ScanModeList, this->scanModeList);
   if (!rc)
       return SANE_STATUS_INVAL;
   // �����٤�������ܥꥹ�Ȥ�������롣
-  nSize = NUM_RESO * sizeof (scanResoList);
-  scanResoList = MALLOC (nSize);
-  if (!scanResoList)
+  nSize = NUM_RESO * sizeof (this->scanResoList);
+  this->scanResoList = MALLOC (nSize);
+  if (!this->scanResoList)
     return SANE_STATUS_NO_MEM;
-  rc = get_reso_int(this->uiSetting.ResoList, scanResoList);
+  rc = get_reso_int(this->uiSetting.ResoList, this->scanResoList);
   if (!rc)
       return SANE_STATUS_INVAL;
   // ������󥽡�����������ܥꥹ�Ȥ�������롣
-  nSize = NUM_SCANSRC * sizeof (scanSrcList[0]);
-  scanSrcList = MALLOC (nSize);
-  if (!scanSrcList)
+  nSize = NUM_SCANSRC * sizeof (this->scanSrcList[0]);
+  this->scanSrcList = MALLOC (nSize);
+  if (!this->scanSrcList)
     return SANE_STATUS_NO_MEM;
-  rc = get_scansrc_string(this->uiSetting.ScanSrcList, scanSrcList);
+  rc = get_scansrc_string(this->uiSetting.ScanSrcList, this->scanSrcList);
   if (!rc)
       return SANE_STATUS_INVAL;
 
@@ -241,12 +234,12 @@ InitOptions (Brother_Scanner *this)
 	  pdesc->type   =SANE_TYPE_STRING;
 	  pdesc->size   =30;
 	  pdesc->constraint_type = SANE_CONSTRAINT_STRING_LIST;
-	  pdesc->constraint.string_list = scanModeList;
+	  pdesc->constraint.string_list = this->scanModeList;
 	  if (this->modelConfig.SupportScanMode.bit.b24BitColor)
-	    listcnt = get_scanmode_listcnt(scanModeList, COLOR_FUL);
+	    listcnt = get_scanmode_listcnt(this->scanModeList, COLOR_FUL);
 	  else
-	    listcnt = get_scanmode_listcnt(scanModeList, COLOR_BW);
-	  pval->s       = strdup(scanModeList[listcnt]);
+	    listcnt = get_scanmode_listcnt(this->scanModeList, COLOR_BW);
+	  pval->s       = strdup(this->scanModeList[listcnt]);
 	  break;
 	case optScanSrc:
 	  pdesc->name   =SANE_NAME_SCAN_SOURCE;
@@ -255,12 +248,12 @@ InitOptions (Brother_Scanner *this)
 	  pdesc->type   =SANE_TYPE_STRING;
 	  pdesc->size   =30;
 	  pdesc->constraint_type = SANE_CONSTRAINT_STRING_LIST;
-	  pdesc->constraint.string_list = scanSrcList;
+	  pdesc->constraint.string_list = this->scanSrcList;
 	  if (this->modelConfig.SupportScanSrc.bit.ADF)
-	    listcnt = get_scansrc_listcnt(scanSrcList, SCANSRC_ADF);
+	    listcnt = get_scansrc_listcnt(this->scanSrcList, SCANSRC_ADF);
 	  else
-	    listcnt = get_scansrc_listcnt(scanSrcList, SCANSRC_FB);
-	  pval->s       = strdup(scanSrcList[listcnt]);
+	    listcnt = get_scansrc_listcnt(this->scanSrcList, SCANSRC_FB);
+	  pval->s       = strdup(this->scanSrcList[listcnt]);
 	  break;
 	case optResolution:
 	  pdesc->name   =SANE_NAME_SCAN_RESOLUTION;
@@ -269,9 +262,9 @@ InitOptions (Brother_Scanner *this)
 	  pdesc->type   =SANE_TYPE_INT;
 	  pdesc->unit   =SANE_UNIT_DPI;
 	  pdesc->constraint_type = SANE_CONSTRAINT_WORD_LIST;
-	  pdesc->constraint.word_list = scanResoList;
-	  listcnt = get_reso_listcnt(scanResoList, DEF_RESOTYPE);
-	  pval->w       = scanResoList[listcnt];
+	  pdesc->constraint.word_list = this->scanResoList;
+	  listcnt = get_reso_listcnt(this->scanResoList, DEF_RESOTYPE);
+	  pval->w       = this->scanResoList[listcnt];
 	  break;
 	case optBrightness:
 	  pdesc->name   =SANE_NAME_BRIGHTNESS;
@@ -401,6 +394,7 @@ Not support (force causing compile error)
    }
 
   pdevFirst=NULL;
+  num_devices=0;
 
   usb_init();
   usb_find_busses();
@@ -500,6 +494,8 @@ sane_exit (void)
       free ((void *) dev->sane.type);
       FREE (dev);
     }
+  pdevFirst = NULL;
+  num_devices = 0;
   if (devlist) FREE(devlist);
   devlist=NULL;
   free_inifile_tree();
@@ -524,7 +520,7 @@ sane_get_devices (const SANE_Device *** device_list,
     return SANE_STATUS_NO_MEM;
 
   i = 0;
-  for (dev = pdevFirst; i < num_devices; dev = dev->pNext)
+  for (dev = pdevFirst; dev && i < num_devices; dev = dev->pNext)
     devlist[i++] = &dev->sane;
   devlist[i++] = 0;
 
@@ -558,13 +554,13 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
     if (!this) return SANE_STATUS_NO_MEM;
     memset(this, 0, sizeof(Brother_Scanner));
 
-    *handle = (SANE_Handle)this;
-
+    this->pdev = pdev;
     this->pNext=pinstFirst; /* register open handle */
     pinstFirst=this;
     /* open and prepare USB scanner handle */
 
     this->hScanner = calloc(sizeof(dev_handle),1);
+    if (!this->hScanner) { rc = SANE_STATUS_NO_MEM; goto fail; }
     if(strncmp(devicename,"net1;dev",strlen("net1;dev")) == 0) {
 	this->hScanner->device = IFTYPE_NET;
     } else {
@@ -578,10 +574,7 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
     if (IFTYPE_USB == this->hScanner->device){
 	this->hScanner->net_device_index = -1;
 	this->hScanner->usb = usb_open(pdev->pdev);
-#ifndef DEBUG_No39
-	g_pdev = pdev;
-#endif
-	if (!this->hScanner->usb) return SANE_STATUS_IO_ERROR;
+	if (!this->hScanner->usb) { rc = SANE_STATUS_IO_ERROR; goto fail; }
 
 	//2005/11/10 not check returned value from usb_set_configuration()
 	//if (usb_set_configuration(this->hScanner, 1))
@@ -590,8 +583,10 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
 	//errornum = usb_set_configuration(this->hScanner->usb, 1);
 	usb_set_configuration_or_reset_toggle(this, 1);
 
-	if (usb_claim_interface(this->hScanner->usb, 1))
-	    return SANE_STATUS_IO_ERROR;
+	if (usb_claim_interface(this->hScanner->usb, 1)) {
+	    rc = SANE_STATUS_IO_ERROR;
+	    goto fail;
+	}
     } else {
 	sscanf(devicename,"net1;dev%d",&this->hScanner->net_device_index);
     }
@@ -599,7 +594,7 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
     // �ǥХ��������ץ�
     rc= OpenDevice(this->hScanner, pdev->modelInf.seriesNo);
     WriteLog("sane_open: OpenDevice returned %d (seriesNo=%d)", rc, pdev->modelInf.seriesNo);
-    if (!rc) { WriteLog("sane_open FAIL: OpenDevice failed"); return SANE_STATUS_INVAL; }
+    if (!rc) { WriteLog("sane_open FAIL: OpenDevice failed"); rc = SANE_STATUS_INVAL; goto fail; }
 
     // �Ƽ����ν����
     this->scanState.bEOF = FALSE;
@@ -642,7 +637,7 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
     GetDeviceAccessParam( this );
 
     if (!QueryDeviceInfo(this)) // Q���ޥ�ɤ�ȯ�Ԥ��ơ��ǥХ�����������
-	return SANE_STATUS_INVAL;
+	{ rc = SANE_STATUS_INVAL; goto fail; }
 
 #ifndef DEBUG_No39
     if (IFTYPE_USB == this->hScanner->device){       //check i/f
@@ -672,13 +667,24 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
     //
     rc = LoadScanDecDll( this );
     if ( !rc )  // Scan Decode DLL�Υ����ɼ���
-	return SANE_STATUS_INVAL;
+	{ rc = SANE_STATUS_INVAL; goto fail; }
 
     // GrayTable�Υ�����
     LoadGrayTable( this, GRAY_TABLE_NO );
 
     rc = InitOptions(this);
+    if (rc != SANE_STATUS_GOOD)
+	goto fail;
+
+    *handle = (SANE_Handle)this;
     WriteLog( "<<< sane_open end >>> " );
+    return SANE_STATUS_GOOD;
+
+fail:
+    /* Release everything acquired so far and unlink the handle;
+     * otherwise it stays in pinstFirst and sane_exit() closes it again. */
+    WriteLog( "sane_open FAIL: rc = %d", rc );
+    sane_close((SANE_Handle)this);
     return rc;
 }
 
@@ -696,6 +702,10 @@ sane_close (SANE_Handle handle)
        * usb_close in the right order. Without this, a scan that ended via
        * sane_read EOF (without sane_cancel) would leave the USB handle
        * open and the scanner in BCOMMAND_RETURN state. */
+      if (this->scanState.bScanning) {
+	AbortPageScan( this );
+	this->scanState.bScanning = FALSE;
+      }
       ScanEnd( this );
 
       FreeGrayTable( this );
@@ -708,14 +718,17 @@ sane_close (SANE_Handle handle)
       }
     }
 
-  if (scanModeList)
-    FREE(scanModeList);
+  if (this->scanModeList)
+    FREE(this->scanModeList);
 
-  if (scanResoList)
-    FREE(scanResoList);
+  if (this->scanResoList)
+    FREE(this->scanResoList);
 
-  if (scanSrcList)
-    FREE(scanSrcList);
+  if (this->scanSrcList)
+    FREE(this->scanSrcList);
+
+  free(this->aoptVal[optMode].s);
+  free(this->aoptVal[optScanSrc].s);
 
   /* unlink active device entry */
   pParent=NULL;
@@ -959,6 +972,24 @@ sane_get_parameters (SANE_Handle handle, SANE_Parameters *p)
   return SANE_STATUS_GOOD;
 }
 
+/*
+ * Tear down a scan that sane_cancel() only flagged.  sane_cancel() may run
+ * while sane_read() is blocked in usb_bulk_read(), so it must not touch the
+ * device; sane_read() and sane_start() call this instead, from the thread
+ * that owns the USB reads.
+ */
+static void
+FinishCanceledScan (Brother_Scanner *this)
+{
+  if (this->scanState.bScanning) {
+    AbortPageScan( this );
+    this->scanState.bScanning = FALSE;
+  }
+  ScanEnd( this );
+  this->scanState.bCanceled = TRUE;
+  this->scanState.bEOF = TRUE;
+}
+
 SANE_Status
 sane_start (SANE_Handle handle)
 {
@@ -966,6 +997,11 @@ sane_start (SANE_Handle handle)
   Brother_Scanner    *this;
   this=(Brother_Scanner*)handle;
   WriteLog( "<<< sane_start start >>> " );
+
+  if (this->scanState.bCanceled) {
+    FinishCanceledScan( this );
+    this->scanState.bCanceled = FALSE;
+  }
 
   rc=SetupInternalParameters(this);
   if (rc) // �����ͤ��ְ�äƤ����票�顼���֤���
@@ -991,6 +1027,11 @@ sane_read (SANE_Handle handle, SANE_Byte *buf,
 
   *len=0;
 
+  if (this->scanState.bCanceled) {
+    FinishCanceledScan( this );
+    return SANE_STATUS_CANCELLED;
+  }
+
   if (!this->scanState.bEOF) {
     rc=PageScan(this,(char*)buf,maxlen,len);
     if(rc == SANE_STATUS_DUPLEX_ADVERSE  && *len == 1) //06/02/27 if 0x84 is only returned, retry PageScan.
@@ -1000,6 +1041,13 @@ sane_read (SANE_Handle handle, SANE_Byte *buf,
   else {
     rc = SANE_STATUS_EOF;
   }
+
+  if (this->scanState.bCanceled && rc == SANE_STATUS_GOOD) {
+    rc = SANE_STATUS_CANCELLED;
+    *len = 0;
+  }
+  if (rc == SANE_STATUS_CANCELLED)
+    FinishCanceledScan( this );
 
   WriteLog( "<<< sane_read End >>> rc = %d, len = %d", rc, *len);
   return rc;
@@ -1015,12 +1063,16 @@ sane_cancel (SANE_Handle handle)
   WriteLog( "sane_cancel start");
   DBG(DEBUG_VERBOSE,"cancel called...\n");
 
-  if (this->scanState.bScanning) {
-    AbortPageScan( this );
-    this->scanState.bScanning=FALSE;
-
-  }
-  ScanEnd( this );
+  /*
+   * Do not call AbortPageScan() / ScanEnd() here.
+   * scanimage may call sane_cancel() while sane_read() is blocked in
+   * usb_bulk_read(); tearing down the USB handle at that point can crash
+   * inside libusb-0.1.  Make cancellation cooperative instead; the device
+   * is torn down by FinishCanceledScan() on the next sane_read() or
+   * sane_start(), or by sane_close().
+   */
+  this->scanState.bCanceled = TRUE;
+  this->scanState.bEOF = TRUE;
 
   WriteLog( "sane_cancel end");
 

@@ -108,8 +108,6 @@ typedef struct TDevice {
   MODELINF               modelInf;
 } TDevice;
 
-extern TDevice *g_pdev;
-
 #endif
 
 
@@ -179,11 +177,15 @@ typedef struct Brother_Scanner {
   struct Brother_Scanner    *pNext;
   SANE_Option_Descriptor     aoptDesc[NUM_OPTIONS];
   TOptionValue               aoptVal[NUM_OPTIONS];
+  SANE_String_Const          *scanModeList;
+  SANE_Int                   *scanResoList;
+  SANE_String_Const          *scanSrcList;
 #endif
   MODELINF                   modelInf;		// オープンされたデバイス情報
   MODELCONFIG                modelConfig;       // オープンされたデバイスの各種設定情報
 
   dev_handle                 *hScanner;		// USBスキャナのハンドル
+  TDevice                    *pdev;		// device this handle was opened on
 
   UISETTING                  uiSetting;         //
   TCorlorMATCH               cmatch;            // カラーマッチング用構造体
