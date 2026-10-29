@@ -1438,7 +1438,7 @@ int ReadInitFileInt( LPCTSTR lpAppName,		/*  address of section name */
 			}
 		}
 	}
-//	fclose(rfile);										
+	fclose(rfile);
 	return result;
 }
 
@@ -1629,7 +1629,7 @@ int ReadInitFileString( LPCTSTR lpAppName,			/*  points to section name */
 				}
 			}
 		}
-//		fclose(rfile);										/
+		fclose(rfile);
 	}
 
 	return result;
@@ -1858,7 +1858,7 @@ int ReadModelInfoSize(LPCTSTR lpAppName, LPCTSTR lpKeyName, int *size, int *reco
 		}
 	}
 
-//	fclose(rfile);
+	fclose(rfile);
 
 	if(*size != 0)		result = TRUE;
 	return result;
@@ -2013,7 +2013,7 @@ int ReadModelInfo(LPCTSTR lpAppName, LPTSTR lpReturnedString,int nSize, LPCTSTR 
 				}
 			}
 		}
-//		fclose(rfile);
+		fclose(rfile);
 	}
 	if(count != 0)	result = TRUE;
 	return result;
