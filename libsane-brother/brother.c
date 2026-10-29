@@ -1042,7 +1042,10 @@ sane_read (SANE_Handle handle, SANE_Byte *buf,
     rc = SANE_STATUS_EOF;
   }
 
-  if (this->scanState.bCanceled && rc == SANE_STATUS_GOOD) {
+  /* Once sane_cancel() has been called, an error from the read that was
+   * in flight (e.g. usb_bulk_read interrupted by the frontend's SIGINT)
+   * is a consequence of the cancel; report it as such. */
+  if (this->scanState.bCanceled && rc != SANE_STATUS_EOF) {
     rc = SANE_STATUS_CANCELLED;
     *len = 0;
   }
