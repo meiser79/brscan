@@ -60,12 +60,6 @@ target_compile_definitions(sane-brother PRIVATE BACKEND_NAME=brother BRSANESUFFI
 target_link_libraries(sane-brother dl pthread usb ${LIBUSB_LIBRARIES} ${JPEG_LIBRARIES} sane-brother-stubs)
 set_target_properties(sane-brother PROPERTIES SOVERSION 1)
 
-# BRSANESUFFIX=2 code loads libbrscandec2.so and libbrcolm2.so by name
-install(CODE "
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink libbrscandec.so \${CMAKE_INSTALL_PREFIX}/lib/libbrscandec2.so)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink libbrcolm.so \${CMAKE_INSTALL_PREFIX}/lib/libbrcolm2.so)
-")
-
 add_executable(brsaneconfig
         brsaneconfig/brsaneconfig.c)
 target_include_directories(brsaneconfig PRIVATE
@@ -74,6 +68,12 @@ target_compile_definitions(brsaneconfig PRIVATE BRSANESUFFIX=2)
 target_link_libraries(brsaneconfig sane-brother)
 
 install(TARGETS brsaneconfig brscandec brcolm)
+# BRSANESUFFIX=2 code loads libbrscandec2.so and libbrcolm2.so by name.
+# Must run after install(TARGETS) so lib/ exists under DESTDIR.
+install(CODE "
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libbrscandec.so \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/libbrscandec2.so)
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libbrcolm.so \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/libbrcolm2.so)
+")
 install(TARGETS sane-brother LIBRARY DESTINATION /usr/lib/sane)
 
 install(FILES libbrcolm/GrayCmData/BHminiFB/brmfgray.bin DESTINATION /usr/share/sane/brother/GrayCmData/BHminiFB)
