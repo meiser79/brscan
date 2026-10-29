@@ -274,6 +274,7 @@ ScanStart( Brother_Scanner *this )
 		    usb_set_configuration_or_reset_toggle(this, 1);
 		    if (usb_claim_interface(this->hScanner->usb, 1))
 		      return SANE_STATUS_IO_ERROR;
+		    usb_reset_bulk_toggle(this);
 
 		    //(05/11/11 Fix to escape I/O error)   if (usb_set_configuration(this->hScanner->usb, 1))
 		    //(05/11/11 Fix to escape I/O error)     return SANE_STATUS_IO_ERROR;

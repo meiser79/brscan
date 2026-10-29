@@ -1107,7 +1107,6 @@ int  usb_set_configuration_or_reset_toggle(
 		   Brother_Scanner *this,
 		   int configuration){
   int errornum;
-  int in_ep, out_ep;
 
   /* Detach the kernel usblp driver from interface 0 (printer class).
    * Without this, usb_set_configuration returns -EBUSY because the
@@ -1125,6 +1124,20 @@ int  usb_set_configuration_or_reset_toggle(
 #endif
 
   errornum = usb_set_configuration(this->hScanner->usb, configuration);
+  WriteLog("set_config_or_reset_toggle: set_cfg=%d", errornum);
+
+  return errornum;
+}
+
+//
+//    Clear halt on the scanner's bulk endpoints (resets their data toggle).
+//    The endpoints belong to interface 1, so this must run after
+//    usb_claim_interface(usb, 1); otherwise the kernel logs
+//    "usbfs: process ... did not claim interface 1 before use".
+//
+void usb_reset_bulk_toggle( Brother_Scanner *this )
+{
+  int in_ep, out_ep;
 
   in_ep = this->hScanner->usb_r_ep;
   if (in_ep < 0x80 || in_ep > 0xff) in_ep = 0x85;
@@ -1134,10 +1147,8 @@ int  usb_set_configuration_or_reset_toggle(
   if (out_ep < 0x01 || out_ep > 0x7f) out_ep = 0x04;
   int rc_out = usb_clear_halt(this->hScanner->usb, out_ep);
 
-  WriteLog("set_config_or_reset_toggle: set_cfg=%d clear_halt(IN=0x%02x)=%d clear_halt(OUT=0x%02x)=%d",
-           errornum, in_ep, rc_in, out_ep, rc_out);
-
-  return errornum;
+  WriteLog("reset_bulk_toggle: clear_halt(IN=0x%02x)=%d clear_halt(OUT=0x%02x)=%d",
+           in_ep, rc_in, out_ep, rc_out);
 }
 
 #ifdef SKEY_USBSEM

@@ -99,6 +99,7 @@ void    FreeReceiveBuffer( void );
 int  usb_set_configuration_or_reset_toggle(
 		   Brother_Scanner *this,
 		   int configuration);
+void usb_reset_bulk_toggle( Brother_Scanner *this );
 
 
 #endif //_BROTHER_DEVACCS_H_

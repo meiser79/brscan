@@ -586,6 +586,7 @@ sane_open (SANE_String_Const devicename, SANE_Handle *handle)
 	    rc = SANE_STATUS_IO_ERROR;
 	    goto fail;
 	}
+	usb_reset_bulk_toggle(this);
     } else {
 	sscanf(devicename,"net1;dev%d",&this->hScanner->net_device_index);
     }
